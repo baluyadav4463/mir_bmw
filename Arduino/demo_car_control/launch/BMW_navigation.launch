@@ -1,0 +1,6 @@
+<launch>
+ <!-- controller Node-->
+  <node pkg="BMW" type="controller" name="controller">
+  </node>
+
+</launch>
