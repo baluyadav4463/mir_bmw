@@ -14,24 +14,37 @@ from image_converter import ImageConverter
 from drive_run import DriveRun
 from config import Config
 from image_process import ImageProcess
+from std_msgs.msg import String
+xMin = 0
+yMin = 0
+xMax = 640
+yMax = 310
+
 
 class NeuralControl:
     def __init__(self):
         rospy.init_node('BMW_controller')
-    
+        self.rate = rospy.Rate(10)
         self.ic = ImageConverter()
         self.image_process = ImageProcess()
-        self.pub = rospy.Publisher('BMW_steer', Int32, queue_size=1)
-        self.rate = rospy.Rate(10)
         self.drive= DriveRun(sys.argv[1])
+
         rospy.Subscriber('/image_topic_2', Image, self.controller_cb)
+        rospy.Subscriber('/usb_cam/image_raw', Image, self.recorder1)
         self.image = None
         self.image_processed = False
+    def recorder1(self, image):
+	cam_img = self.ic.imgmsg_to_opencv(image)
+	cropImg = cam_img[yMin:yMax,xMin:xMax]
+	global newimg
+        newimg = cv2.resize(cropImg,(160,50))	
 
     def controller_cb(self, image): 
         img = self.ic.imgmsg_to_opencv(image)
-        img = cv2.resize(img,(160,70))
-        self.image = self.image_process.process(img)
+        img_resize = cv2.resize(img,(160,50))
+	stacked_img = np.concatenate((img_resize,newimg), axis=0)
+    
+        self.image = self.image_process.process(stacked_img)
         self.image_processed = True
 
 
@@ -41,7 +54,7 @@ if __name__ == "__main__":
         while not rospy.is_shutdown():
             if neural_control.image_processed == True:
                 prediction = neural_control.drive.run(neural_control.image)
-                neural_control.pub.publish(prediction)
+
 		print(prediction)
 		joy_pub = rospy.Publisher('/joy', Joy, queue_size = 10)
 	        rate = rospy.Rate(10)

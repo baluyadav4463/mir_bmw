@@ -10,6 +10,7 @@ import sys
 import rospy
 import numpy as np
 from sensor_msgs.msg import Joy
+from std_msgs.msg import Float32
 import cv2
 from drive_run import DriveRun
 from config import Config
@@ -21,7 +22,7 @@ yMin = 0
 xMax = 640
 yMax = 310
 
-video = cv2.VideoCapture(1)
+video = cv2.VideoCapture(0)
 
 #pre process of image and then calculate the prediction and passing to steering_commands function
 def predict_from_camera(drive):
@@ -75,6 +76,8 @@ def steering_commands(prediction):
 #####################################################################################
     joy_pub.publish(joy_data)
     print(prediction[0][0])
+    camera_pub=rospy.Publisher('/Camera_Prediction', Float32, queue_size = 100)
+    camera_pub.publish(prediction[0][0])
 
 def main():
     try:
@@ -84,7 +87,7 @@ def main():
 
         drive= DriveRun(sys.argv[1])
 
-        while(True):
+        while not rospy.is_shutdown():
             try:
                 predict_from_camera(drive)
             except KeyboardInterrupt:
